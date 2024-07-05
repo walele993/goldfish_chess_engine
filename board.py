@@ -1,0 +1,185 @@
+from pieces import Piece, Pawn, Knight, Bishop, Rook, Queen, King
+from rules import is_valid_move, is_castling_move, is_checkmate, is_stalemate, handle_end_game
+
+class Chess:
+    def __init__(self, EPD='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'):
+        """
+        Initializes a new chess game.
+        EPD: A string representing the initial chess setup in EPD format.
+        """
+        self.x = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']  
+        self.y = ['8', '7', '6', '5', '4', '3', '2', '1']  
+        self.piece_classes = {
+            'P': Pawn, 'N': Knight, 'B': Bishop, 'R': Rook, 'Q': Queen, 'K': King,
+            'p': Pawn, 'n': Knight, 'b': Bishop, 'r': Rook, 'q': Queen, 'k': King
+        }
+        self.reset(EPD=EPD)
+
+    def reset(self, EPD='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'):
+        """
+        Resets the game to its initial state.
+        EPD: A string representing the initial chess setup in EPD format.
+        """
+        self.log = []  
+        self.init_pos = EPD  
+        self.EPD_table = {}  
+        self.p_move = 1  
+        self.castling = [1, 1, 1, 1]  
+        self.en_passant = None  
+        self.board = [[0] * 8 for _ in range(8)]  
+        self.load_EPD(EPD)
+
+    def load_EPD(self, EPD):
+        """
+        Loads the initial chess setup from the EPD string.
+        EPD: A string representing the initial chess setup in EPD format.
+        """
+        data = EPD.split(' ')
+        if len(data) == 4:
+            for x, rank in enumerate(data[0].split('/')):
+                y = 0
+                for p in rank:
+                    if p.isdigit():
+                        y += int(p)
+                    else:
+                        piece_class = self.piece_classes[p]
+                        color = 1 if p.isupper() else -1
+                        self.board[x][y] = piece_class(self, color)
+                        y += 1
+            self.p_move = 1 if data[1] == 'w' else -1
+            self.castling = [1 if c in data[2] else 0 for c in "KQkq"]
+            self.en_passant = None if data[3] == '-' else self.board_2_array(data[3])
+            return True
+        else:
+            return False
+
+    def display(self):
+        """
+        Displays the current chessboard.
+        """
+        result = '  a b c d e f g h  \n  ----------------\n'
+        for c, y in enumerate(self.board):
+            result += f'{8 - c}|'
+            for x in y:
+                if x != 0:
+                    piece_notation = x.get_notation().upper() if x.color == 1 else x.get_notation().lower()
+                    result += piece_notation + ' '
+                else:
+                    result += '. '
+            result += f'|{8 - c}\n'
+        print(result)
+
+    @staticmethod
+    def board_2_array(pos):
+        """
+        Converts a position in chess notation to a (row, column) tuple of the board matrix.
+        pos: A string representing a position in chess notation (e.g. 'a1', 'h8').
+        """
+        if len(pos) == 2 and pos[0] in 'abcdefgh' and pos[1] in '12345678':
+            return int(pos[1]) - 1, ord(pos[0]) - ord('a')
+        else:
+            return None
+
+    def move(self, move):
+        if move:
+            piece, from_pos, to_pos = move
+            if from_pos and to_pos:
+                if is_castling_move(self, move):
+                    self.execute_castling(move)
+                else:
+                    is_valid, reason = is_valid_move(self, move)
+                    if is_valid:
+                        print(f"Executing move: {piece.get_notation()} from {from_pos} to {to_pos}")
+    
+                        # En passant move
+                        if isinstance(piece, Pawn) and abs(to_pos[1] - from_pos[1]) == 1 and to_pos[0] - from_pos[0] == piece.color:
+                            if self.board[to_pos[0]][to_pos[1]] == 0:
+                                self.board[from_pos[0]][to_pos[1]] = 0
+                                print("En passant capture executed.")
+    
+                        # Move the piece to the new position
+                        self.board[to_pos[0]][to_pos[1]] = self.board[from_pos[0]][from_pos[1]]
+                        self.board[from_pos[0]][from_pos[1]] = 0
+                        self.board[to_pos[0]][to_pos[1]].has_moved = True
+    
+                        # Pawn promotion
+                        if isinstance(piece, Pawn) and (to_pos[0] == 0 or to_pos[0] == 7):
+                            # Promote to Queen for simplicity, could be extended to other pieces
+                            self.board[to_pos[0]][to_pos[1]] = Queen(self, piece.color)
+                            print("Pawn promoted to Queen.")
+    
+                        # Switch player turn
+                        self.p_move *= -1
+                        self.last_move = move
+    
+                        # Check for checkmate or stalemate
+                        if is_checkmate(self, self.p_move):
+                            print("Checkmate! The game is over.")
+                            handle_end_game(self)
+                        elif is_stalemate(self, self.p_move):
+                            print("Stalemate! The game is over.")
+                            handle_end_game(self)
+                        else:
+                            print("Move executed successfully!")
+                    else:
+                        print(f"Invalid move: {reason}")
+                    
+                    
+    def get_legal_moves(self, player):
+        """
+        Gets all possible legal moves for the specified player.
+        """
+        legal_moves = []
+        for y, row in enumerate(self.board):
+            for x, piece in enumerate(row):
+                if isinstance(piece, Piece) and piece.color == player:
+                    piece_moves = piece.movement(player, (y, x))
+                    legal_moves.extend([(piece, (y, x), move) for move in piece_moves])
+        
+        castling_moves = [(None, from_pos, to_pos) for from_pos, to_pos in self.get_castling_moves()]
+        legal_moves.extend(castling_moves)
+        
+        return legal_moves
+
+    def get_castling_moves(self):
+        """
+        Generates castling moves for the current player.
+        """
+        castling_moves = []
+        if self.p_move == 1:
+            if self.castling[0]:  # Short castling for white
+                if self.board[7][5] == 0 and self.board[7][6] == 0:
+                    castling_moves.append(((7, 4), (7, 6)))  # Add the king's move
+            if self.castling[1]:  # Long castling for white
+                if self.board[7][1] == 0 and self.board[7][2] == 0 and self.board[7][3] == 0:
+                    castling_moves.append(((7, 4), (7, 2)))  # Add the king's move
+        else:
+            if self.castling[2]:  # Short castling for black
+                if self.board[0][5] == 0 and self.board[0][6] == 0:
+                    castling_moves.append(((0, 4), (0, 6)))  # Add the king's move
+            if self.castling[3]:  # Long castling for black
+                if self.board[0][1] == 0 and self.board[0][2] == 0 and self.board[0][3] == 0:
+                    castling_moves.append(((0, 4), (0, 2)))  # Add the king's move
+        return castling_moves
+    
+    def execute_castling(game, move):
+        piece, from_pos, to_pos = move
+        if to_pos[1] == 2:  # Queenside castling
+            rook_pos = (from_pos[0], 0)
+            new_rook_pos = (from_pos[0], 3)
+        else:  # Kingside castling
+            rook_pos = (from_pos[0], 7)
+            new_rook_pos = (from_pos[0], 5)
+    
+        # Move the rook
+        game.board[new_rook_pos[0]][new_rook_pos[1]] = game.board[rook_pos[0]][rook_pos[1]]
+        game.board[rook_pos[0]][rook_pos[1]] = 0
+        game.board[new_rook_pos[0]][new_rook_pos[1]].has_moved = True
+    
+        # Move the king
+        game.board[to_pos[0]][to_pos[1]] = game.board[from_pos[0]][from_pos[1]]
+        game.board[from_pos[0]][from_pos[1]] = 0
+        game.board[to_pos[0]][to_pos[1]].has_moved = True
+    
+        game.p_move *= -1
+        print("Castling move executed!")
