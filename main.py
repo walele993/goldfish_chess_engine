@@ -64,7 +64,7 @@ def play_turn(game, player=None):
                 
                 if move is not None:
                     try:
-                        # Passa il parametro player solo se è il turno dell'umano
+                        # Pass the player parameter only if it is the human player's turn
                         game.move(move, player=player)
                         print("\n")
                         game.display()
