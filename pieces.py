@@ -13,7 +13,7 @@ class Piece:
         raise NotImplementedError("This method should be overridden in derived classes")
 
     def move(self, from_pos, to_pos):
-        # Aggiorna la posizione del pezzo
+        # Update the piece's position
         if self.game.board[from_pos[0]][from_pos[1]] == self:
             self.game.board[to_pos[0]][to_pos[1]] = self
             self.game.board[from_pos[0]][from_pos[1]] = 0
@@ -34,7 +34,7 @@ class Pawn(Piece):
         initial_rank = 6 if player == 1 else 1
         amt = 2 if pos[0] == initial_rank else 1
 
-        # Movimento in avanti del pedone
+        # Pawn's forward movement
         for i in range(amt):
             next_row = pos[0] + ((i + 1) * direction)
             next_col = pos[1]
@@ -44,11 +44,11 @@ class Pawn(Piece):
                 if not isinstance(next_cell, Piece):
                     result.append((pos, next_pos))
                 else:
-                    break  # Il pedone non può muoversi oltre se la casella successiva è occupata
+                    break  # The pawn cannot move further if the next cell is occupied
             else:
-                break  # Il pedone non può muoversi oltre il bordo della scacchiera   
+                break  # The pawn cannot move beyond the board's edge   
 
-        # Movimento di cattura del pedone
+        # Pawn's capture movement
         if capture:
             for i in [-1, 1]:
                 next_row = pos[0] + direction
@@ -62,7 +62,6 @@ class Pawn(Piece):
                     result.append((pos, next_pos))
 
         return result
-
 
 class Knight(Piece):
     def __init__(self, game, color, position=None):
@@ -92,7 +91,7 @@ class Bishop(Piece):
                 if not (0 <= x < 8 and 0 <= y < 8):
                     break  # Out of board
                 next_cell = self.game.board[x][y]
-                if not isinstance(self.game.board[x][y], Piece):  # Empty cell
+                if not isinstance(next_cell, Piece):  # Empty cell
                     result.append((pos, (x, y)))
                 elif next_cell.color != self.color:  # Opponent's piece
                     result.append((pos, (x, y)))
@@ -126,7 +125,7 @@ class Rook(Piece):
         return result
 
     def move(self, player, from_pos, to_pos):
-        move_result = super().move(player, from_pos, to_pos)
+        move_result = super().move(from_pos, to_pos)
         if move_result:
             # Check if a rook is moved from its initial position
             if from_pos == (7 if player == -1 else 0, 0) or from_pos == (7 if player == -1 else 0, 7):
@@ -157,7 +156,7 @@ class King(Piece):
 
     def movement(self, player, pos, capture=True):
         result = []
-        directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]  # Tutte le direzioni
+        directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]  # All directions
         for dx, dy in directions:
             x, y = pos[0] + dx, pos[1] + dy
             if 0 <= x < 8 and 0 <= y < 8:
@@ -165,7 +164,6 @@ class King(Piece):
                 if not isinstance(next_cell, Piece) or next_cell.color != self.color:
                     result.append((pos, (x, y)))
         return result
-
 
     def move(self, player, from_pos, to_pos):
         move_result = self.game.move((self.game.board[from_pos[0]][from_pos[1]], from_pos, to_pos))
