@@ -1,5 +1,6 @@
 from pieces import Piece, Pawn, Knight, Bishop, Rook, Queen, King
 from rules import is_valid_move, is_castling_move, is_checkmate, is_stalemate, handle_end_game
+import copy
 
 class Chess:
     def __init__(self, EPD='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'):
@@ -14,6 +15,7 @@ class Chess:
             'p': Pawn, 'n': Knight, 'b': Bishop, 'r': Rook, 'q': Queen, 'k': King
         }
         self.reset(EPD=EPD)
+        self.log = []
 
     def reset(self, EPD='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'):
         """
@@ -44,7 +46,8 @@ class Chess:
                     else:
                         piece_class = self.piece_classes[p]
                         color = 1 if p.isupper() else -1
-                        self.board[x][y] = piece_class(self, color)
+                        # Imposta la posizione del pezzo
+                        self.board[x][y] = piece_class(self, color, (x, y))
                         y += 1
             self.p_move = 1 if data[1] == 'w' else -1
             self.castling = [1 if c in data[2] else 0 for c in "KQkq"]
@@ -68,6 +71,9 @@ class Chess:
                     result += '. '
             result += f'|{8 - c}\n'
         print(result)
+        
+    def clone(self):
+        return copy.deepcopy(self)
 
     @staticmethod
     def board_2_array(pos):
@@ -80,51 +86,71 @@ class Chess:
         else:
             return None
 
-    def move(self, move):
+    def move(self, move, player=None):
         if move:
             piece, from_pos, to_pos = move
             if from_pos and to_pos:
+                captured_piece = self.board[to_pos[0]][to_pos[1]]  # Identifica il pezzo catturato (se presente)
+                special_move = None
+    
+                # Verifica se la mossa è un castling
                 if is_castling_move(self, move):
                     self.execute_castling(move)
+                    special_move = "castling"
+                    captured_piece = None  # Arrocco non cattura nessun pezzo
+    
+                    # Registra la mossa nel log
+                    if player is not None:  # Solo per giocatore umano
+                        print(f"Executing castling move: {piece.get_notation()} from {from_pos} to {to_pos}")
+                    self.log.append((piece, from_pos, to_pos, captured_piece, special_move))
                 else:
+                    # Verifica la validità della mossa
                     is_valid, reason = is_valid_move(self, move)
                     if is_valid:
-                        print(f"Executing move: {piece.get_notation()} from {from_pos} to {to_pos}")
+                        if player is not None:  # Solo per giocatore umano
+                            print(f"Executing move: {piece.get_notation()} from {from_pos} to {to_pos}")
     
-                        # En passant move
+                        # Gestione dell'en passant
                         if isinstance(piece, Pawn) and abs(to_pos[1] - from_pos[1]) == 1 and to_pos[0] - from_pos[0] == piece.color:
                             if self.board[to_pos[0]][to_pos[1]] == 0:
+                                captured_piece = self.board[from_pos[0]][to_pos[1]]  # Pedone catturato en passant
                                 self.board[from_pos[0]][to_pos[1]] = 0
-                                print("En passant capture executed.")
+                                special_move = "en passant"
+                                if player is not None:  # Solo per giocatore umano
+                                    print("En passant capture executed.")
     
-                        # Move the piece to the new position
-                        self.board[to_pos[0]][to_pos[1]] = self.board[from_pos[0]][from_pos[1]]
-                        self.board[from_pos[0]][from_pos[1]] = 0
-                        self.board[to_pos[0]][to_pos[1]].has_moved = True
+                        # Muovi il pezzo alla nuova posizione
+                        piece.move(from_pos, to_pos)
     
-                        # Pawn promotion
+                        # Gestione della promozione del pedone
                         if isinstance(piece, Pawn) and (to_pos[0] == 0 or to_pos[0] == 7):
-                            # Promote to Queen for simplicity, could be extended to other pieces
-                            self.board[to_pos[0]][to_pos[1]] = Queen(self, piece.color)
-                            print("Pawn promoted to Queen.")
+                            self.board[to_pos[0]][to_pos[1]] = Queen(self, piece.color)  # Promuovi a Regina
+                            if player is not None:  # Solo per giocatore umano
+                                print("Pawn promoted to Queen.\n")
     
-                        # Switch player turn
+                        # Cambia il turno del giocatore
                         self.p_move *= -1
                         self.last_move = move
     
-                        # Check for checkmate or stalemate
+                        # Controlla scacco matto o stallo
                         if is_checkmate(self, self.p_move):
-                            print("Checkmate! The game is over.")
+                            if player is not None:  # Solo per giocatore umano
+                                print("Checkmate! The game is over.\n")
                             handle_end_game(self)
                         elif is_stalemate(self, self.p_move):
-                            print("Stalemate! The game is over.")
+                            if player is not None:  # Solo per giocatore umano
+                                print("Stalemate! The game is over.\n")
                             handle_end_game(self)
                         else:
-                            print("Move executed successfully!")
+                            if player is not None:  # Solo per giocatore umano
+                                print("Move executed successfully!\n")
+    
+                        # Registra la mossa nel log
+                        self.log.append((piece, from_pos, to_pos, captured_piece, special_move))
                     else:
-                        print(f"Invalid move: {reason}")
-                    
-                    
+                        if player is not None:  # Solo per giocatore umano
+                            print(f"Invalid move: {reason}\n")
+
     def get_legal_moves(self, player):
         """
         Gets all possible legal moves for the specified player.
@@ -183,3 +209,50 @@ class Chess:
     
         game.p_move *= -1
         print("Castling move executed!")
+
+    def undo_last_move(self):
+        if self.log:
+            last_move = self.log.pop()
+            piece, from_pos, to_pos, captured_piece, special_move = last_move
+            
+            # Restore player turn
+            self.p_move *= -1
+            print("Last move undone.\n")
+            
+            # Restore the board state
+            self.board[from_pos[0]][from_pos[1]] = piece
+            self.board[to_pos[0]][to_pos[1]] = captured_piece
+    
+            # Restore specific rules if applicable
+            if special_move == "castling":
+                # Restore the king's and rook's position based on the castling type
+                if to_pos[1] == from_pos[1] + 2:  # Kingside castling
+                    # King moved from from_pos to to_pos, and the rook also moved
+                    self.board[from_pos[0]][from_pos[1] + 2] = 0  # Clear new king's position
+                    self.board[from_pos[0]][from_pos[1] + 1] = 0  # Clear new rook's position
+                    self.board[from_pos[0]][from_pos[1]] = piece  # Restore king to original position
+                    self.board[from_pos[0]][from_pos[1] + 3] = Rook(self, piece.color)  # Restore rook to original position
+                elif to_pos[1] == from_pos[1] - 2:  # Queenside castling
+                    # King moved from from_pos to to_pos, and the rook also moved
+                    self.board[from_pos[0]][from_pos[1] - 2] = 0  # Clear new king's position
+                    self.board[from_pos[0]][from_pos[1] - 1] = 0  # Clear new rook's position
+                    self.board[from_pos[0]][from_pos[1]] = piece  # Restore king to original position
+                    self.board[from_pos[0]][from_pos[1] - 4] = Rook(self, piece.color)  # Restore rook to original position
+    
+            elif special_move == "en passant":
+                # Restore the pawn that was captured en passant
+                if piece.color == 1:  # White pawn
+                    self.board[to_pos[0] + 1][to_pos[1]] = Pawn(self, 1)  # Restore white pawn
+                else:  # Black pawn
+                    self.board[to_pos[0] - 1][to_pos[1]] = Pawn(self, -1)  # Restore black pawn
+    
+            elif isinstance(piece, Queen) and (from_pos[0] == 0 or from_pos[0] == 7):
+                # Undo pawn promotion: replace queen with pawn
+                self.board[to_pos[0]][to_pos[1]] = Pawn(self, piece.color)
+    
+        else:
+            print("No moves to undo.\n")
+            
+    def exit_game(self):
+        print("Exiting the game.\n")
+        handle_end_game(self)
