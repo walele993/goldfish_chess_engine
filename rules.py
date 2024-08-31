@@ -1,4 +1,5 @@
 from pieces import Piece, Pawn, Knight, Bishop, Rook, Queen, King
+import sys
 
 def is_valid_move(game, move):
     """
@@ -24,8 +25,6 @@ def is_valid_move(game, move):
     
     # Get the legal moves for the piece at that position
     legal_moves = piece.movement(game.p_move, from_pos)
-    print('The legal moves are', legal_moves)
-    print('The move you are trying to make is', move[1:])
     
     # Check if the move is among the legal moves
     if move[1:] not in legal_moves:
@@ -160,7 +159,7 @@ def handle_end_game(self):
             break
         elif choice == "2":
             print("Thanks for playing!")
-            quit()
+            sys.exit()
         else:
             print("Invalid choice. Please enter 1 or 2.")
 
