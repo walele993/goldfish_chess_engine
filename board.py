@@ -46,7 +46,7 @@ class Chess:
                     else:
                         piece_class = self.piece_classes[p]
                         color = 1 if p.isupper() else -1
-                        # Imposta la posizione del pezzo
+                        # Set the piece position
                         self.board[x][y] = piece_class(self, color, (x, y))
                         y += 1
             self.p_move = 1 if data[1] == 'w' else -1
@@ -90,65 +90,65 @@ class Chess:
         if move:
             piece, from_pos, to_pos = move
             if from_pos and to_pos:
-                captured_piece = self.board[to_pos[0]][to_pos[1]]  # Identifica il pezzo catturato (se presente)
+                captured_piece = self.board[to_pos[0]][to_pos[1]]  # Identify the captured piece (if any)
                 special_move = None
     
-                # Verifica se la mossa è un castling
+                # Check if the move is a castling move
                 if is_castling_move(self, move):
                     self.execute_castling(move)
                     special_move = "castling"
-                    captured_piece = None  # Arrocco non cattura nessun pezzo
+                    captured_piece = None  # Castling does not capture any piece
     
-                    # Registra la mossa nel log
-                    if player is not None:  # Solo per giocatore umano
+                    # Log the move
+                    if player is not None:  # Only for human players
                         print(f"Executing castling move: {piece.get_notation()} from {from_pos} to {to_pos}")
                     self.log.append((piece, from_pos, to_pos, captured_piece, special_move))
                 else:
-                    # Verifica la validità della mossa
+                    # Check if the move is valid
                     is_valid, reason = is_valid_move(self, move)
                     if is_valid:
-                        if player is not None:  # Solo per giocatore umano
+                        if player is not None:  # Only for human players
                             print(f"Executing move: {piece.get_notation()} from {from_pos} to {to_pos}")
     
-                        # Gestione dell'en passant
+                        # Handle en passant
                         if isinstance(piece, Pawn) and abs(to_pos[1] - from_pos[1]) == 1 and to_pos[0] - from_pos[0] == piece.color:
                             if self.board[to_pos[0]][to_pos[1]] == 0:
-                                captured_piece = self.board[from_pos[0]][to_pos[1]]  # Pedone catturato en passant
+                                captured_piece = self.board[from_pos[0]][to_pos[1]]  # Pawn captured en passant
                                 self.board[from_pos[0]][to_pos[1]] = 0
                                 special_move = "en passant"
-                                if player is not None:  # Solo per giocatore umano
+                                if player is not None:  # Only for human players
                                     print("En passant capture executed.")
     
-                        # Muovi il pezzo alla nuova posizione
+                        # Move the piece to the new position
                         piece.move(from_pos, to_pos)
     
-                        # Gestione della promozione del pedone
+                        # Handle pawn promotion
                         if isinstance(piece, Pawn) and (to_pos[0] == 0 or to_pos[0] == 7):
-                            self.board[to_pos[0]][to_pos[1]] = Queen(self, piece.color)  # Promuovi a Regina
-                            if player is not None:  # Solo per giocatore umano
+                            self.board[to_pos[0]][to_pos[1]] = Queen(self, piece.color)  # Promote to Queen
+                            if player is not None:  # Only for human players
                                 print("Pawn promoted to Queen.\n")
     
-                        # Cambia il turno del giocatore
+                        # Change the player's turn
                         self.p_move *= -1
                         self.last_move = move
     
-                        # Controlla scacco matto o stallo
+                        # Check for checkmate or stalemate
                         if is_checkmate(self, self.p_move):
-                            if player is not None:  # Solo per giocatore umano
+                            if player is not None:  # Only for human players
                                 print("Checkmate! The game is over.\n")
                             handle_end_game(self)
                         elif is_stalemate(self, self.p_move):
-                            if player is not None:  # Solo per giocatore umano
+                            if player is not None:  # Only for human players
                                 print("Stalemate! The game is over.\n")
                             handle_end_game(self)
                         else:
-                            if player is not None:  # Solo per giocatore umano
+                            if player is not None:  # Only for human players
                                 print("Move executed successfully!\n")
     
-                        # Registra la mossa nel log
+                        # Log the move
                         self.log.append((piece, from_pos, to_pos, captured_piece, special_move))
                     else:
-                        if player is not None:  # Solo per giocatore umano
+                        if player is not None:  # Only for human players
                             print(f"Invalid move: {reason}\n")
 
     def get_legal_moves(self, player):
