@@ -2,13 +2,12 @@
 
 **Work in Progress**
 
-Goldfish Chess Engine is a chess engine implemented in Python, designed to adhere to the standard rules of chess, including special moves such as castling and pawn promotion.
-The project aims to create a chess engine capable of playing against users, evaluating game positions, and assigning scores to moves.
+Goldfish Chess Engine is a chess engine implemented in Python, designed to adhere to the standard rules of chess, including special moves such as castling and pawn promotion. The project is actively being developed with the goal of creating a fully functional chess engine capable of playing against users and evaluating game positions.
 
 ## Features
 
 - **Complete Chess Gameplay:** Implements full chess rules, including special moves like castling and pawn promotion.
-- **Basic Artificial Intelligence:** Allows gameplay against a human player without opponent AI implementation.
+- **Basic Artificial Intelligence:** Aiming to include gameplay against a human player with AI capabilities. Currently in progress.
 - **Board Visualization:** Displays the chessboard in text format after each move.
 
 ## Project Structure
@@ -29,7 +28,7 @@ The project is divided into the following modules:
 The `Chess` class is the core of the game engine. Here are its main functionalities:
 
 - `__init__()`: Loads the initial board configuration and initializes players.
-- `move_piece()`: Handles the movement of a piece on the board. Verifies if the move is valid using rules defined in `rules.py`.
+- `move_piece()`: Handles the movement of a piece on the board and verifies the validity of the move.
 - `is_check()`: Checks if a player's king is in check.
 - `is_checkmate()`: Determines if a player's king is in checkmate, ending the game if so.
 - `is_stalemate()`: Checks if the game is in stalemate, ending the game if so.
@@ -65,26 +64,19 @@ This module manages the user interface and game loop:
 
 ## Installation
 
-Clone the repository:
-
-```
-git clone https://github.com/your-username/goldfish-chess.git
-cd goldfish-chess
-```
-
-Run the game:
-
-```
+- Clone the repository:
+git clone https://github.com/your-username/goldfish-chess.git cd goldfish-chess
+- Run the game:
 python main.py
-```
 
-## Future Goal
+## Future Goals
 
-The project aims to create a chess engine capable of playing against users, evaluating game positions, and assigning scores to moves.
+- **Single-Player AI:** Development of an AI to play against users. The AI's initial implementation is underway, with plans to enhance its strategy and decision-making.
+- **Move Evaluation:** Future updates will include functionality to evaluate game positions to further improve the AI.
 
 ### Feedback and Contributions
 
-If you have any questions, comments, or suggestions, feel free to contact me. I am also open to accepting pull requests or forks of the project on GitHub.
+If you have any questions, comments, or suggestions, feel free to contact me. Contributions, pull requests, and forks are welcome on GitHub.
 
 ## Credits
 
